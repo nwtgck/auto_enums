@@ -293,9 +293,12 @@ mod kw {
     syn::custom_keyword!(marker);
 }
 
-struct Args {
-    args: Vec<Path>,
-    marker: Option<Ident>,
+// TODO: do not pub
+pub(crate) struct Args {
+    // TODO: do not pub
+    pub(crate) args: Vec<Path>,
+    // TODO: do not pub
+    pub(crate) marker: Option<Ident>,
 }
 
 impl Parse for Args {

@@ -23,18 +23,18 @@
 
 use core::iter;
 
-use auto_enums::auto_enum;
+use auto_enums::{auto_enum, auto_enum_explicit};
 
 #[test]
 fn stable() {
     const ANS: &[i32] = &[28, 3];
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn match_(x: usize) -> impl Iterator<Item = i32> {
         match x {
-            0 => 1..8,
-            n if n > 3 => 2..=10,
-            _ => (0..2).map(|x| x + 1),
+            0 => marker!(1..8),
+            n if n > 3 => marker!(2..=10),
+            _ => marker!((0..2).map(|x| x + 1)),
         }
     }
     for (i, x) in ANS.iter().enumerate() {
@@ -44,13 +44,13 @@ fn stable() {
     // block + unsafe block + parentheses
     #[rustfmt::skip]
     #[allow(unused_parens, unused_braces, unused_unsafe)]
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn block(x: usize) -> impl Iterator<Item = i32> {
         {{({ unsafe {{({ unsafe { unsafe {{
             match x {
-                0 => 1..8,
-                n if n > 3 => 2..=10,
-                _ => (0..2).map(|x| x + 1),
+                0 => marker!(1..8),
+                n if n > 3 => marker!(2..=10),
+                _ => marker!((0..2).map(|x| x + 1)),
             }
         }}}})}}})}}
     }
@@ -58,28 +58,28 @@ fn stable() {
         assert_eq!(block(i).sum::<i32>(), *x);
     }
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn if_(x: usize) -> impl Iterator<Item = i32> {
         if x == 0 {
-            1..8
+            marker!(1..8)
         } else if x > 3 {
-            2..=10
+            marker!(2..=10)
         } else {
-            (0..2).map(|x| x + 1)
+            marker!((0..2).map(|x| x + 1))
         }
     }
     for (i, x) in ANS.iter().enumerate() {
         assert_eq!(if_(i).sum::<i32>(), *x);
     }
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn method_call(x: usize) -> impl Iterator<Item = i32> {
         if x == 0 {
-            1..8
+            marker!(1..8)
         } else if x > 3 {
-            2..=10
+            marker!(2..=10)
         } else {
-            (0..2).map(|x| x + 1)
+            marker!((0..2).map(|x| x + 1))
         }
         .map(|x| x + 1)
         .map(|x| x - 1)
@@ -88,53 +88,53 @@ fn stable() {
         assert_eq!(method_call(i).sum::<i32>(), *x);
     }
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn no_return(x: usize) -> impl Iterator<Item = i32> {
         match x {
-            0 => 1..8,
+            0 => marker!(1..8),
             3 => panic!(),
-            _ => (0..2).map(|x| x + 1),
+            _ => marker!((0..2).map(|x| x + 1)),
         }
     }
     for (i, x) in ANS.iter().enumerate() {
         assert_eq!(no_return(i).sum::<i32>(), *x);
     }
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn no_return2(x: usize) -> impl Iterator<Item = i32> {
         match x {
-            0 => 1..8,
+            0 => marker!(1..8),
             3 => match x {
                 0 => panic!(),
                 1..=3 => panic!(),
                 _ => unreachable!(),
             },
-            _ => (0..2).map(|x| x + 1),
+            _ => marker!((0..2).map(|x| x + 1)),
         }
     }
     for (i, x) in ANS.iter().enumerate() {
         assert_eq!(no_return2(i).sum::<i32>(), *x);
     }
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn no_return3(x: usize) -> impl Iterator<Item = i32> {
         match x {
-            0 => 1..8,
+            0 => marker!(1..8),
             3 => match x {
                 0 => panic!(),
-                1..=3 => (1..4).map(|x| x + 1),
+                1..=3 => marker!((1..4).map(|x| x + 1)),
                 _ => unreachable!(),
             },
-            _ => (0..2).map(|x| x + 1),
+            _ => marker!((0..2).map(|x| x + 1)),
         }
     }
     for (i, x) in ANS.iter().enumerate() {
         assert_eq!(no_return3(i).sum::<i32>(), *x);
     }
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn no_return4(i: usize) -> impl Iterator<Item = i32> {
         if i == 0 {
-            1..8
+            marker!(1..8)
         } else if i > 6 {
             panic!();
         } else if i > 5 {
@@ -148,46 +148,46 @@ fn stable() {
         } else if i > 1 {
             core::unreachable!();
         } else {
-            (0..2).map(|x| x + 1)
+            marker!((0..2).map(|x| x + 1))
         }
     }
     for (i, x) in ANS.iter().enumerate() {
         assert_eq!(no_return4(i).sum::<i32>(), *x);
     }
 
-    #[auto_enum(fmt::Debug)]
+    #[auto_enum_explicit(fmt::Debug)]
     fn no_return5(x: usize) -> impl core::fmt::Debug {
         match x {
-            0 => 1..8,
-            3 => {}
-            _ => 0..=2,
+            0 => marker!(1..8),
+            3 => marker!(()),
+            _ => marker!(0..=2),
         }
     }
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn return1(x: usize) -> impl Iterator<Item = i32> {
         if x > 10 {
-            return (0..x as _).map(|x| x - 1);
+            return marker!((0..x as _).map(|x| x - 1));
         }
         if x == 0 {
-            1..8
+            marker!(1..8)
         } else if x > 3 {
-            2..=10
+            marker!(2..=10)
         } else {
-            (0..2).map(|x| x + 1)
+            marker!((0..2).map(|x| x + 1))
         }
     }
     for (i, x) in ANS.iter().enumerate() {
         assert_eq!(return1(i).sum::<i32>(), *x);
     }
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn break_in_loop(mut x: i32) -> impl Iterator<Item = i32> {
         loop {
             if x < 0 {
-                break x..0;
+                break marker!(x..0);
             } else if x % 5 == 0 {
-                break 0..=x;
+                break marker!(0..=x);
             }
             x -= 1;
         }
@@ -195,13 +195,13 @@ fn stable() {
     assert_eq!(break_in_loop(14).sum::<i32>(), 55);
     assert_eq!(break_in_loop(-5).sum::<i32>(), -15);
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn break2(mut x: i32) -> impl Iterator<Item = i32> {
         'a: loop {
             if x < 0 {
-                break 'a x..0;
+                break 'a marker!(x..0);
             } else if x % 5 == 0 {
-                break 0..=x;
+                break marker!(0..=x);
             }
             x -= 1;
         }
@@ -209,16 +209,16 @@ fn stable() {
     assert_eq!(break2(14).sum::<i32>(), 55);
     assert_eq!(break2(-5).sum::<i32>(), -15);
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn break3(mut x: i32) -> impl Iterator<Item = i32> {
         'a: loop {
             if x < 0 {
                 loop {
-                    break 'a x..0;
+                    break 'a marker!(x..0);
                 }
             } else if x % 5 == 0 {
                 return loop {
-                    break 0..=x;
+                    break marker!(0..=x);
                 };
             }
             x -= 1;
@@ -227,13 +227,13 @@ fn stable() {
     assert_eq!(break3(14).sum::<i32>(), 55);
     assert_eq!(break3(-5).sum::<i32>(), -15);
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn return_in_loop(mut x: i32) -> impl Iterator<Item = i32> {
         loop {
             if x < 0 {
-                return x..0;
+                return marker!(x..0);
             } else if x % 5 == 0 {
-                return 0..=x;
+                return marker!(0..=x);
             }
             x -= 1;
         }
@@ -241,6 +241,7 @@ fn stable() {
     assert_eq!(return_in_loop(14).sum::<i32>(), 55);
     assert_eq!(return_in_loop(-5).sum::<i32>(), -15);
 
+    // TODO: support
     #[auto_enum(Iterator)]
     fn return2(x: i32, y: i32) -> impl Iterator<Item = i32> {
         #[auto_enum(Iterator)]
@@ -257,60 +258,59 @@ fn stable() {
     }
     assert_eq!(return2(10, 10).sum::<i32>(), 63);
 
-    #[auto_enum]
+    #[auto_enum_explicit(Iterator)]
     fn return3(x: i32) -> Option<impl Iterator<Item = i32>> {
         if x < 0 {
             return None;
         }
 
-        #[auto_enum(Iterator)]
         let iter = match x {
-            0 => 2..8,
+            0 => marker!(2..8),
             1 => None?,
             2 => std::option::Option::None?,
             3 => core::option::Option::None?,
             4 => None::<_>?,
-            _ => 2..=10,
+            _ => marker!(2..=10),
         };
 
         Some(iter)
     }
     assert_eq!(return3(10).unwrap().sum::<i32>(), 54);
 
-    #[auto_enum]
+    #[auto_enum_explicit(Iterator)]
     fn return4(x: i32) -> Result<impl Iterator<Item = i32>, ()> {
         if x < 0 {
             return Err(());
         }
 
-        #[auto_enum(Iterator)]
         let iter = match x {
-            0 => 2..8,
+            0 => marker!(2..8),
             1 => Err(())?,
             2 => std::result::Result::Err(())?,
             3 => core::result::Result::Err(())?,
             4 => Err::<_, ()>(())?,
-            _ => 2..=10,
+            _ => marker!(2..=10),
         };
 
         Ok(iter)
     }
     assert_eq!(return4(10).unwrap().sum::<i32>(), 54);
 
-    #[auto_enum(Debug, Display)]
-    fn try_operator1(x: i32) -> Result<impl Iterator<Item = i32>, impl core::fmt::Debug> {
-        if x < 0 {
-            Err(1_i32)?;
-        }
-
-        let iter = match x {
-            0 => Err(())?,
-            _ => 2..=10,
-        };
-
-        Ok(iter)
-    }
-    assert_eq!(try_operator1(10).unwrap().sum::<i32>(), 54);
+    // // TODO: support
+    // #[auto_enum_explicit(Debug, Display)]
+    // fn try_operator1(x: i32) -> Result<impl Iterator<Item = i32>, impl core::fmt::Debug> {
+    //     if x < 0 {
+    //         Err(1_i32)?;
+    //     }
+    //
+    //     let iter = match x {
+    //         0 => Err(())?,
+    //         _ => 2..=10,
+    //     };
+    //
+    //     Ok(iter)
+    // }
+    // assert_eq!(try_operator1(10).unwrap().sum::<i32>(), 54);
 
     #[auto_enum(Debug)]
     fn try_operator2(
@@ -506,13 +506,23 @@ fn stable_std() {
 
     #[auto_enum(Transpose, Write)]
     fn transpose_ok(file: Option<&Path>) -> io::Result<impl io::Write> {
-        if let Some(file) = file { File::create(file) } else { Ok(io::stdout()) }.transpose_ok()
+        if let Some(file) = file {
+            File::create(file)
+        } else {
+            Ok(io::stdout())
+        }
+        .transpose_ok()
     }
     assert!(transpose_ok(None).is_ok());
 
     #[auto_enum(Transpose, Write)]
     fn transpose_option(file: Option<&Path>) -> Option<impl io::Write> {
-        if let Some(file) = file { File::create(file).ok() } else { Some(io::stdout()) }.transpose()
+        if let Some(file) = file {
+            File::create(file).ok()
+        } else {
+            Some(io::stdout())
+        }
+        .transpose()
     }
     assert!(transpose_option(None).is_some());
 
@@ -632,58 +642,56 @@ fn non_stmt_expr_if(x: bool) -> Option<impl Iterator<Item = u8>> {
 
 #[test]
 fn nested() {
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn match_in_match(x: usize) -> impl Iterator<Item = i32> {
         match x {
-            0 => 1..8,
-            #[nested]
+            0 => marker!(1..8),
             n if n > 3 => match x {
-                2..=10 => (1..x as _).map(|x| x - 1),
-                _ => 2..=10,
+                2..=10 => marker!((1..x as _).map(|x| x - 1)),
+                _ => marker!(2..=10),
             },
-            _ => (0..2).map(|x| x + 1),
+            _ => marker!((0..2).map(|x| x + 1)),
         }
     }
     for (i, x) in [28, 3].iter().enumerate() {
         assert_eq!(match_in_match(i).sum::<i32>(), *x);
     }
 
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn match_in_match_nested(x: usize) -> impl Iterator<Item = i32> {
         match x {
-            0 => 1..8,
-            #[nested]
+            0 => marker!(1..8),
+            // #[nested]
             n if n > 3 => match x {
-                2..=10 =>
-                {
-                    #[nested]
+                2..=10 => {
+                    // #[nested]
                     match n {
-                        4 => (1..x as _).map(|x| x - 1),
-                        _ => (1..x as _).map(|x| x + 1),
+                        4 => marker!((1..x as _).map(|x| x - 1)),
+                        _ => marker!((1..x as _).map(|x| x + 1)),
                     }
                 }
-                _ => 2..=10,
+                _ => marker!(2..=10),
             },
-            _ => (0..2).map(|x| x + 1),
+            _ => marker!((0..2).map(|x| x + 1)),
         }
     }
 
     #[rustfmt::skip]
     #[allow(unused_braces, unused_unsafe)]
-    #[auto_enum(Iterator)]
+    #[auto_enum_explicit(Iterator)]
     fn in_block(x: usize) -> impl Iterator<Item = i32> {
         {{{ unsafe {{{ unsafe { unsafe {{
             match x {
-                0 => 1..8,
-                #[nested]
+                0 => marker!(1..8),
+                // #[nested]
                 n if n > 3 => {{{ unsafe {{
                     if x > 10 {
-                        (-10..=x as _).map(|x| x - 4)
+                        marker!((-10..=x as _).map(|x| x - 4))
                     } else {
-                        (1..=4).map(|x| x - 4)
+                        marker!((1..=4).map(|x| x - 4))
                     }
                 }}}}}
-                _ => (0..2).map(|x| x + 1),
+                _ => marker!((0..2).map(|x| x + 1)),
             }
         }}}}}}}}}
     }
@@ -694,15 +702,15 @@ fn nested() {
     #[auto_enum(Iterator)]
     fn match_in_if(x: usize) -> impl Iterator<Item = i32> {
         if x == 0 {
-            1..8
+            marker!(1..8)
         } else if x > 3 {
-            #[nested]
+            // #[nested]
             match x {
-                1..=4 => 2..=10,
-                _ => (11..20).map(|x| x - 1),
+                1..=4 => marker!(2..=10),
+                _ => marker!((11..20).map(|x| x - 1)),
             }
         } else {
-            (0..2).map(|x| x + 1)
+            marker!((0..2).map(|x| x + 1))
         }
     }
     for (i, x) in [28, 3].iter().enumerate() {
@@ -755,7 +763,11 @@ fn nested() {
             0 => 1..8,
             3 => {
                 #[nested]
-                let x = if x > 4 { 2..=10 } else { (11..20).map(|x| x - 1) };
+                let x = if x > 4 {
+                    2..=10
+                } else {
+                    (11..20).map(|x| x - 1)
+                };
                 x
             }
             _ => (0..2).map(|x| x + 1),
@@ -793,7 +805,11 @@ fn nested() {
             1..8
         } else if x > 3 {
             #[nested]
-            let x = if x > 4 { 2..=10 } else { (11..20).map(|x| x - 1) };
+            let x = if x > 4 {
+                2..=10
+            } else {
+                (11..20).map(|x| x - 1)
+            };
             x
         } else {
             (0..2).map(|x| x + 1)
@@ -811,7 +827,11 @@ fn nested() {
             #[nested]
             let x = if x > 4 {
                 #[nested]
-                let x = if x > 4 { (2..=10).flat_map(|x| 1..x) } else { core::iter::empty() };
+                let x = if x > 4 {
+                    (2..=10).flat_map(|x| 1..x)
+                } else {
+                    core::iter::empty()
+                };
                 x
             } else {
                 (11..20).map(|x| x - 1)
@@ -833,8 +853,11 @@ fn nested() {
                 #[nested]
                 let x = if x > 10 {
                     #[nested]
-                    let x =
-                        if x > 11 { (2..=10).flat_map(|x| 1..x) } else { (11..20).map(|x| x - 1) };
+                    let x = if x > 11 {
+                        (2..=10).flat_map(|x| 1..x)
+                    } else {
+                        (11..20).map(|x| x - 1)
+                    };
                     x
                 } else {
                     #[nested]
@@ -873,10 +896,18 @@ fn nested() {
             1..8
         } else if x > 3 {
             #[nested]
-            let y = if x > 4 { 2..=10 } else { (11..20).map(|x| x - 1) };
+            let y = if x > 4 {
+                2..=10
+            } else {
+                (11..20).map(|x| x - 1)
+            };
 
             #[nested]
-            let z = if x < 4 { 2..10 } else { (11..20).map(|x| x - 1) };
+            let z = if x < 4 {
+                2..10
+            } else {
+                (11..20).map(|x| x - 1)
+            };
 
             if x > 5 {
                 y
@@ -894,7 +925,11 @@ fn nested() {
             0 => 1..8,
             3 => {
                 #[nested]
-                let x = if x > 4 { 2..=10 } else { (11..20).map(|x| x - 1) };
+                let x = if x > 4 {
+                    2..=10
+                } else {
+                    (11..20).map(|x| x - 1)
+                };
                 #[nested] // no-op
                 let _y = 111..120;
                 x
@@ -909,7 +944,11 @@ fn nested() {
             1..8
         } else if x > 3 {
             #[nested]
-            let x = if x > 4 { 2..=10 } else { (11..20).map(|x| x - 1) };
+            let x = if x > 4 {
+                2..=10
+            } else {
+                (11..20).map(|x| x - 1)
+            };
             #[nested] // no-op
             x
         } else {

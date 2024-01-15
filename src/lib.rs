@@ -923,3 +923,73 @@ pub fn enum_derive(args: TokenStream, input: TokenStream) -> TokenStream {
 pub fn auto_enum(args: TokenStream, input: TokenStream) -> TokenStream {
     crate::auto_enum::attribute(args.into(), input.into()).into()
 }
+
+// Define in single file because it is PoC
+#[proc_macro_attribute]
+pub fn auto_enum_explicit(args: TokenStream, input: TokenStream) -> TokenStream {
+    use syn::visit_mut::VisitMut;
+    use std::collections::hash_map::DefaultHasher;
+    use std::hash::Hasher;
+
+    let args: proc_macro2::TokenStream = args.into();
+    let input: proc_macro2::TokenStream = input.into();
+    let auto_enum::context::Args { args, marker } = syn::parse2(args).unwrap(); // TODO: no .unwrap()
+
+    const DEFAULT_MARKER: &str = "marker";
+
+    #[derive(Debug)]
+    struct AutoEnumExplicit{
+        marker: String,
+        enum_ident: syn::Ident,
+        variants: Vec<syn::Ident>,
+    }
+    impl VisitMut for AutoEnumExplicit {
+        fn visit_expr_mut(&mut self, node: &mut syn::Expr) {
+            if let syn::Expr::Macro(expr_macro) = &node {
+                if expr_macro.mac.path.is_ident(&self.marker) {
+                    let args = syn::parse2(expr_macro.mac.tokens.clone()).unwrap(); // TODO: no .unwrap() and better error message
+                    let variant = quote::format_ident!("__Variant{}", self.variants.len());
+                    self.variants.push(variant.clone());
+                    let path =
+                        utils::path(std::iter::once(self.enum_ident.clone().into()).chain(std::iter::once(variant.clone().into())));
+                    *node = utils::expr_call(vec![], path, args);
+                }
+            }
+
+            syn::visit_mut::visit_expr_mut(self, node);
+        }
+    }
+
+    /// Returns the hash value of the input AST.
+    fn hash(input: &proc_macro2::TokenStream) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        hasher.write(input.to_string().as_bytes());
+        hasher.finish()
+    }
+    let enum_ident = quote::format_ident!("__Enum{}", hash(&input.clone()));
+    let mut input = syn::parse2::<syn::ItemFn>(input).unwrap(); // TODO: no .unwrap()
+    let mut explicit = AutoEnumExplicit {
+        marker: marker.map(|i| i.to_string()).unwrap_or_else(|| DEFAULT_MARKER.to_owned()),
+        enum_ident: enum_ident.clone(),
+        variants: vec![],
+    };
+    explicit.visit_item_fn_mut(&mut input);
+
+    let ty_generics = &explicit.variants;
+    let variants = &explicit.variants;
+    let fields = &explicit.variants;
+    let derive = args.iter();
+
+    let q = quote::quote! {
+        // TODO: do not enum define if no variants
+        // TODO: define enum inside function
+        #[allow(non_camel_case_types)]
+        #[::auto_enums::enum_derive(#(#derive),*)]
+        enum #enum_ident<#(#ty_generics),*> {
+            #(#variants(#fields),)*
+        }
+
+        #input
+    };
+    TokenStream::from(q)
+}

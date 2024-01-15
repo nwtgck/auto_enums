@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0 OR MIT
 
-mod context;
+pub(crate) mod context; // TODO: do not pub(creat)
 mod expr;
 #[cfg(feature = "type_analysis")]
 mod type_analysis;
